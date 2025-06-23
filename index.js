@@ -196,3 +196,62 @@ function showDisplaySection(section){
 [weatherInfoSection,searchCitySection,notFoundSection].forEach(section=>section.style.display='none')
 section.style.display='flex'
 }
+
+
+
+// -------- LOCATION-BASED WEATHER FUNCTIONALITY --------
+
+// Optional: Add a detect button or auto-run this on page load
+window.addEventListener('load', () => {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(showPosition, handleLocationError);
+    } else {
+        alert("Geolocation is not supported by your browser.");
+    }
+});
+
+function showPosition(position) {
+    const { latitude, longitude } = position.coords;
+    fetchWeatherByCoordinates(latitude, longitude);
+}
+
+function handleLocationError(error) {
+    console.error("Error getting location:", error);
+    // Optional: Display error UI
+}
+
+async function fetchWeatherByCoordinates(lat, lon) {
+    try {
+        const response = await fetch(
+            `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`
+        );
+        const weatherData = await response.json();
+
+        if (weatherData.cod !== 200) {
+            showDisplaySection(notFoundSection);
+            return;
+        }
+
+        const {
+            name,
+            main: { temp, humidity },
+            weather: [{ id, main }],
+            wind: { speed },
+        } = weatherData;
+
+        countryTxt.textContent = name;
+        tempTxt.textContent = Math.round(temp) + '°C';
+        conditionTxt.textContent = main;
+        humidityTxt.textContent = humidity + '%';
+        windValueTxt.textContent = speed + 'M/s';
+        weatherSummaryImg.src = `./assets/weather/${getWeatherIcon(id)}`;
+        currentDateTxt.textContent = getCuurentDate();
+
+        await updateForecastInfo(name);
+        showDisplaySection(weatherInfoSection);
+        suggestionsContainer.style.display = 'none';
+    } catch (err) {
+        console.error("Failed to fetch weather by location:", err);
+        showDisplaySection(notFoundSection);
+    }
+}
